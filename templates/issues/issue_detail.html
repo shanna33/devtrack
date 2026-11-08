@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ issue.title }} | DevTrack{% endblock %}
+{% block page_title %}{{ issue.title }}{% endblock %}
+{% block page_description %}<p class="page-description"><a href="{% url 'project_detail' issue.project.pk %}">{{ issue.project.name }}</a> <span class="mx-1">/</span> Issue details</p>{% endblock %}
+
+{% block content %}
+<div class="card-panel detail-panel mb-4">
+    <div class="page-header">
+        <div>
+            <h4>{{ issue.title }}</h4>
+            <p class="text-muted mb-0">Reported by {{ issue.reporter.username }}</p>
+        </div>
+        {% if can_edit_issue or can_delete_issue %}
+        <div>
+            {% if can_edit_issue %}
+            <a href="{% url 'issue_update' issue.pk %}" class="btn btn-outline-primary">Edit</a>
+            {% endif %}
+            {% if can_delete_issue %}
+            <a href="{% url 'issue_delete' issue.pk %}" class="btn btn-outline-danger">Delete</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="row g-3 mb-4 issue-properties">
+        <div class="col-md-3">
+            <div class="property-label">Status</div>
+            <span class="badge status-badge status-{{ issue.status }}">{{ issue.get_status_display }}</span>
+        </div>
+        <div class="col-md-3">
+            <div class="property-label">Priority</div>
+            <span class="priority-badge priority-{{ issue.priority }}">{{ issue.get_priority_display }}</span>
+        </div>
+        <div class="col-md-3">
+            <div class="property-label">Assignee</div>
+            <span>{{ issue.assignee.username|default:'Unassigned' }}</span>
+        </div>
+        <div class="col-md-3">
+            <div class="property-label">Due date</div>
+            <span>{{ issue.due_date|date:'M d, Y'|default:'Not set' }}</span>
+        </div>
+    </div>
+
+    <div class="issue-description">{{ issue.description|default:'No description provided.' }}</div>
+    <div class="detail-meta d-flex gap-3 text-muted small flex-wrap">
+        <span>Created {{ issue.created_at|date:'M d, Y' }}</span>
+        <span>Updated {{ issue.updated_at|date:'M d, Y' }}</span>
+    </div>
+</div>
+
+<div class="card-panel comments-panel">
+    <div class="page-header">
+        <div>
+            <h4>Comments</h4>
+            <p class="section-description mb-0">Keep the conversation with this issue.</p>
+        </div>
+    </div>
+    <form method="post" action="{% url 'add_comment' issue.pk %}" class="mb-4">
+        {% csrf_token %}
+        {{ form.content }}
+        <button type="submit" class="btn btn-primary mt-2">Add comment</button>
+    </form>
+
+    {% if comments %}
+        {% for comment in comments %}
+        <div class="comment-item">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <strong>{{ comment.author.username }}</strong>
+                <small class="text-muted">{{ comment.created_at|date:'M d, Y H:i' }}</small>
+            </div>
+            <p class="mb-2">{{ comment.content }}</p>
+            {% if comment.author == user or can_manage_comments %}
+            <form method="post" action="{% url 'delete_comment' comment.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+            </form>
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">No comments yet. Start the conversation when you're ready.</div>
+    {% endif %}
+</div>
+{% endblock %}

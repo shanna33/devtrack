@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}Issues | DevTrack{% endblock %}
+{% block page_title %}Issues{% endblock %}
+{% block page_description %}<p class="page-description">Browse and filter issues across your projects.</p>{% endblock %}
+
+{% block content %}
+<div class="card-panel filter-panel mb-4">
+    <form method="get" class="row g-3 align-items-end">
+        <div class="col-lg-3 col-md-6">
+            <label class="form-label" for="project">Project</label>
+            <select name="project" id="project" class="form-select filter-control">
+                <option value="">All projects</option>
+                {% for project in projects %}
+                    <option value="{{ project.id }}" {% if selected_project == project.id|stringformat:'s' %}selected{% endif %}>{{ project.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-lg-2 col-md-6">
+            <label class="form-label" for="status">Status</label>
+            <select name="status" id="status" class="form-select filter-control">
+                <option value="">All</option>
+                {% for value, label in issue_statuses %}
+                <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-lg-2 col-md-6">
+            <label class="form-label" for="priority">Priority</label>
+            <select name="priority" id="priority" class="form-select filter-control">
+                <option value="">All</option>
+                {% for value, label in issue_priorities %}
+                <option value="{{ value }}" {% if selected_priority == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <label class="form-label" for="search">Search</label>
+            <input type="text" name="search" id="search" value="{{ search }}" class="form-control filter-control" placeholder="Issue title or description">
+        </div>
+        <div class="col-lg-2 col-md-6">
+            <label class="form-label" for="ordering">Sort</label>
+            <select name="ordering" id="ordering" class="form-select filter-control">
+                <option value="-updated_at" {% if ordering == '-updated_at' %}selected{% endif %}>Updated</option>
+                <option value="-created_at" {% if ordering == '-created_at' %}selected{% endif %}>Created</option>
+                <option value="due_date" {% if ordering == 'due_date' %}selected{% endif %}>Due date</option>
+                <option value="-priority" {% if ordering == '-priority' %}selected{% endif %}>Priority</option>
+            </select>
+        </div>
+        <div class="col-12">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-funnel me-1" aria-hidden="true"></i>Apply filters</button>
+            <a href="{% url 'issue_list' %}" class="btn btn-outline-secondary">Reset</a>
+        </div>
+    </form>
+</div>
+
+<div class="card-panel issue-backlog">
+    <div class="page-header">
+        <div>
+            <h4>Issue backlog</h4>
+            <p class="section-description mb-0">Your project work, all in one place.</p>
+        </div>
+    </div>
+    {% if issues %}
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Issue</th>
+                    <th>Project</th>
+                    <th>Status</th>
+                    <th>Priority</th>
+                    <th>Assignee</th>
+                    <th>Due</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for issue in issues %}
+                <tr>
+                    <td><a href="{% url 'issue_detail' issue.pk %}">{{ issue.title }}</a></td>
+                    <td>{{ issue.project.name }}</td>
+                    <td><span class="badge status-badge status-{{ issue.status }}">{{ issue.get_status_display }}</span></td>
+                    <td><span class="priority-badge priority-{{ issue.priority }}">{{ issue.get_priority_display }}</span></td>
+                    <td>{{ issue.assignee.username|default:'Unassigned' }}</td>
+                    <td>{{ issue.due_date|default:'-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if issues.paginator.num_pages > 1 %}
+    <nav aria-label="Issue pagination" class="mt-3">
+        <ul class="pagination">
+            {% if issues.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ issues.previous_page_number }}{% if request.GET.project %}&project={{ request.GET.project }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.priority %}&priority={{ request.GET.priority }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.ordering %}&ordering={{ request.GET.ordering }}{% endif %}">Previous</a></li>
+            {% endif %}
+            {% for page_num in issues.paginator.page_range %}
+            <li class="page-item {% if issues.number == page_num %}active{% endif %}"><a class="page-link" href="?page={{ page_num }}{% if request.GET.project %}&project={{ request.GET.project }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.priority %}&priority={{ request.GET.priority }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.ordering %}&ordering={{ request.GET.ordering }}{% endif %}">{{ page_num }}</a></li>
+            {% endfor %}
+            {% if issues.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ issues.next_page_number }}{% if request.GET.project %}&project={{ request.GET.project }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.priority %}&priority={{ request.GET.priority }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.ordering %}&ordering={{ request.GET.ordering }}{% endif %}">Next</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+    {% else %}
+    <div class="empty-state">
+        {% if projects %}
+        <p>No issues match these filters. Try changing or clearing the filters.</p>
+        <a href="{% url 'issue_list' %}" class="btn btn-outline-secondary btn-sm">Clear filters</a>
+        {% else %}
+        <p>You don't have any projects yet. Create one to start tracking issues.</p>
+        <a href="{% url 'project_create' %}" class="btn btn-primary btn-sm">Create a project</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}Projects | DevTrack{% endblock %}
+{% block page_title %}Projects{% endblock %}
+{% block page_description %}<p class="page-description">Projects you own or collaborate on.</p>{% endblock %}
+
+{% block content %}
+<div class="card-panel project-list-panel">
+    <div class="page-header">
+        <div>
+            <h4>Your projects</h4>
+            <p class="section-description mb-0">Organize work and keep your team aligned.</p>
+        </div>
+        <a href="{% url 'project_create' %}" class="btn btn-primary"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Create project</a>
+    </div>
+    {% if projects %}
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Owner</th>
+                    <th>Members</th>
+                    <th>Updated</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for project in projects %}
+                <tr>
+                    <td><a href="{% url 'project_detail' project.pk %}">{{ project.name }}</a></td>
+                    <td>{{ project.owner.username }}</td>
+                    <td>{{ project.member_count }}</td>
+                    <td>{{ project.updated_at|date:'M d, Y' }}</td>
+                    <td>
+                        <a href="{% url 'project_detail' project.pk %}" class="btn btn-sm btn-outline-secondary">Open</a>
+                        {% if project.can_edit_project %}
+                        <a href="{% url 'project_update' project.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>No projects yet. Create your first project to get your workspace started.</p>
+        <a href="{% url 'project_create' %}" class="btn btn-primary btn-sm">Create your first project</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

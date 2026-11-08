@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: devtrack
+    env: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput"
+    startCommand: "gunicorn config.wsgi"
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: "*"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: devtrack-db
+          property: connectionString
+
+databases:
+  - name: devtrack-db
+    plan: free
+    databaseName: devtrack
+    user: devtrack

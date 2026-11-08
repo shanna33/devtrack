@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard | DevTrack{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block page_description %}<p class="page-description">A clear view of your projects and work in progress.</p>{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="kpi-label"><i class="bi bi-collection me-1" aria-hidden="true"></i>Projects</div>
+            <div class="kpi-value">{{ total_projects }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="kpi-label"><i class="bi bi-ticket-detailed me-1" aria-hidden="true"></i>Issues</div>
+            <div class="kpi-value">{{ total_issues }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="kpi-label"><i class="bi bi-circle me-1" aria-hidden="true"></i>Open</div>
+            <div class="kpi-value">{{ open_issues }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="kpi-label"><i class="bi bi-check2-circle me-1" aria-hidden="true"></i>Completed</div>
+            <div class="kpi-value">{{ completed_issues }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mt-1">
+    <div class="col-lg-6">
+        <div class="card-panel">
+            <div class="page-header">
+                <h4>Recently updated issues</h4>
+            </div>
+            {% if recent_issues %}
+            <div class="list-group list-group-flush">
+                {% for issue in recent_issues %}
+                <a class="list-group-item list-group-item-action" href="{% url 'issue_detail' issue.pk %}">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <strong>{{ issue.title }}</strong>
+                        <span class="badge status-badge status-{{ issue.status }}">{{ issue.get_status_display }}</span>
+                    </div>
+                    <div class="text-muted small mt-1">{{ issue.project.name }} · Updated {{ issue.updated_at|date:'M d, Y' }}</div>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                {% if total_projects %}
+                <p>No issues have been reported yet. Open a project to create its first issue.</p>
+                <a href="{% url 'project_list' %}" class="btn btn-outline-primary btn-sm">View projects</a>
+                {% else %}
+                <p>No issues to show yet. Create a project to start tracking work.</p>
+                <a href="{% url 'project_create' %}" class="btn btn-outline-primary btn-sm">Create a project</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card-panel">
+            <div class="page-header">
+                <h4>Recent projects</h4>
+            </div>
+            {% if recent_projects %}
+            <div class="list-group list-group-flush">
+                {% for project in recent_projects %}
+                <a class="list-group-item list-group-item-action" href="{% url 'project_detail' project.pk %}">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <strong>{{ project.name }}</strong>
+                        <span class="text-muted small">{{ project.issues.count }} issues</span>
+                    </div>
+                    <div class="text-muted small mt-1">Owner: {{ project.owner.username }}</div>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <p>Your workspace is ready. Create a project to organize your team's work.</p>
+                <a href="{% url 'project_create' %}" class="btn btn-primary btn-sm">Create your first project</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mt-1">
+    <div class="col-lg-6">
+        <div class="card-panel">
+            <div class="page-header">
+                <h4>Assigned to you</h4>
+            </div>
+            <div class="kpi-value">{{ assigned_to_me }}</div>
+            <div class="text-muted small mt-1">Issues assigned to you across your projects.</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

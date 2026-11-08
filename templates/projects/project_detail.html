@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ project.name }} | DevTrack{% endblock %}
+{% block page_title %}{{ project.name }}{% endblock %}
+{% block page_description %}<p class="page-description">Project workspace <span class="mx-1">/</span> Overview</p>{% endblock %}
+
+{% block content %}
+<div class="card-panel detail-panel mb-4">
+    <div class="page-header">
+        <div>
+            <h4>{{ project.name }}</h4>
+            <p class="text-muted mb-0">Owned by {{ project.owner.username }}</p>
+        </div>
+        {% if can_edit_project or can_manage_members or can_delete_project %}
+        <div>
+            {% if can_edit_project %}
+            <a href="{% url 'project_update' project.pk %}" class="btn btn-outline-primary">Edit</a>
+            {% endif %}
+            {% if can_manage_members %}
+            <a href="{% url 'project_members' project.pk %}" class="btn btn-outline-secondary">Members</a>
+            {% endif %}
+            {% if can_delete_project %}
+            <a href="{% url 'project_delete' project.pk %}" class="btn btn-outline-danger">Delete</a>
+            {% endif %}
+        </div>
+        {% else %}
+        <a href="{% url 'project_members' project.pk %}" class="btn btn-outline-secondary">Members</a>
+        {% endif %}
+    </div>
+    <div class="project-description">{{ project.description|default:'No description provided.' }}</div>
+    <div class="detail-meta d-flex gap-3 text-muted small">
+        <span>Created {{ project.created_at|date:'M d, Y' }}</span>
+        <span>Updated {{ project.updated_at|date:'M d, Y' }}</span>
+    </div>
+</div>
+
+<div class="card-panel issue-backlog">
+    <div class="page-header">
+        <div>
+            <h4>Issues</h4>
+            <p class="section-description mb-0">Track the work planned for this project.</p>
+        </div>
+        <a href="{% url 'issue_create' project.pk %}" class="btn btn-primary"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>New issue</a>
+    </div>
+    {% if issues %}
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Status</th>
+                    <th>Priority</th>
+                    <th>Assignee</th>
+                    <th>Updated</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for issue in issues %}
+                <tr>
+                    <td><a href="{% url 'issue_detail' issue.pk %}">{{ issue.title }}</a></td>
+                    <td><span class="badge status-badge status-{{ issue.status }}">{{ issue.get_status_display }}</span></td>
+                    <td><span class="priority-badge priority-{{ issue.priority }}">{{ issue.get_priority_display }}</span></td>
+                    <td>{{ issue.assignee.username|default:'Unassigned' }}</td>
+                    <td>{{ issue.updated_at|date:'M d, Y' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>No issues in this project yet. Add the first task to get things moving.</p>
+        <a href="{% url 'issue_create' project.pk %}" class="btn btn-primary btn-sm">Create an issue</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
