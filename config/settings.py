@@ -19,7 +19,30 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 if not SECRET_KEY:
     raise ImproperlyConfigured("Set DJANGO_SECRET_KEY in the environment or local .env file.")
 DEBUG = str(os.environ.get("DEBUG", "True")).strip().lower() == "true"
-ALLOWED_HOSTS = _split_csv(os.environ.get("ALLOWED_HOSTS"), "localhost,127.0.0.1")
+RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME", "").strip()
+if RENDER_EXTERNAL_HOSTNAME:
+    DEBUG = False
+
+ALLOWED_HOSTS = _split_csv(
+    os.environ.get("ALLOWED_HOSTS"),
+    "" if RENDER_EXTERNAL_HOSTNAME else "localhost,127.0.0.1",
+)
+if RENDER_EXTERNAL_HOSTNAME and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+if "*" in ALLOWED_HOSTS:
+    raise ImproperlyConfigured("Wildcard hosts are not allowed; set explicit ALLOWED_HOSTS values.")
+
+CSRF_TRUSTED_ORIGINS = _split_csv(os.environ.get("CSRF_TRUSTED_ORIGINS"), "")
+if RENDER_EXTERNAL_HOSTNAME:
+    render_origin = f"https://{RENDER_EXTERNAL_HOSTNAME}"
+    if render_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(render_origin)
+
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SECURE_SSL_REDIRECT = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SECURE_HSTS_SECONDS = 3600 if RENDER_EXTERNAL_HOSTNAME else 0
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -88,6 +111,16 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {
+        "BACKEND": (
+            "whitenoise.storage.CompressedManifestStaticFilesStorage"
+            if not DEBUG
+            else "django.contrib.staticfiles.storage.StaticFilesStorage"
+        ),
+    },
+}
 
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "dashboard"

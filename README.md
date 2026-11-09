@@ -211,6 +211,6 @@ Screenshots are intentionally left as placeholders for future capture.
 
 ## Deployment
 
-A basic deployment configuration is included via `Procfile` and `render.yaml`. These are suitable for a platform like Render or similar hosting services.
+The Render Blueprint in `render.yaml` provisions the Django web service and PostgreSQL database. It generates `DJANGO_SECRET_KEY`, sets `DEBUG` to false, connects `DATABASE_URL` to PostgreSQL, and runs migrations and `collectstatic` during the build. Django uses Render's `RENDER_EXTERNAL_HOSTNAME` to configure allowed hosts and the HTTPS CSRF origin.
 
-Do not treat this as an active production deployment, but the project is ready to be configured for deployment with environment variables and a PostgreSQL-backed database.
+The Blueprint does not deploy the project until it is applied in Render.
