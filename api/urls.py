@@ -9,6 +9,7 @@ from .views import (
     ProjectMembershipAPIView,
     ProjectMembershipDestroyAPIView,
     ProjectMembershipRoleAPIView,
+    ProjectMemberSearchAPIView,
     ProjectViewSet,
     RegisterView,
 )
@@ -22,6 +23,7 @@ urlpatterns = [
     path("auth/token/", TokenObtainPairView.as_view(), name="api_token_obtain_pair"),
     path("auth/token/refresh/", TokenRefreshView.as_view(), name="api_token_refresh"),
     path("auth/register/", RegisterView.as_view(), name="api_register"),
+    path("projects/<int:project_id>/members/search/", ProjectMemberSearchAPIView.as_view(), name="api_project_members_search"),
     path("projects/<int:project_id>/members/", ProjectMembershipAPIView.as_view(), name="api_project_members"),
     path("projects/<int:project_id>/members/<int:user_id>/", ProjectMembershipDestroyAPIView.as_view(), name="api_project_members_remove"),
     path("projects/<int:project_id>/members/<int:user_id>/role/", ProjectMembershipRoleAPIView.as_view(), name="api_project_member_role"),

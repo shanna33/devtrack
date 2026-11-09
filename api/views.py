@@ -1,9 +1,12 @@
+from django.contrib.auth import get_user_model
 from django.db.models import Q
 from rest_framework import generics, permissions, status, viewsets
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from drf_spectacular.utils import extend_schema
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 
 from issues.models import Comment, Issue
 from projects.models import Project, ProjectMembership
@@ -25,6 +28,9 @@ from .serializers import (
     ProjectSerializer,
     RegisterSerializer,
 )
+
+User = get_user_model()
+
 
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
@@ -126,6 +132,55 @@ class ProjectMembershipAPIView(APIView):
             return Response({"detail": "Project owner cannot be removed."}, status=status.HTTP_400_BAD_REQUEST)
         membership.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ProjectMemberSearchAPIView(APIView):
+    authentication_classes = [SessionAuthentication, JWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="q",
+                type=str,
+                location=OpenApiParameter.QUERY,
+                required=True,
+                description="Username search term (at least 2 characters).",
+            )
+        ],
+        responses={status.HTTP_200_OK: dict},
+    )
+    def get(self, request, project_id):
+        project = Project.objects.filter(pk=project_id).first()
+        if project is None or not project.user_can_access(request.user):
+            return Response(
+                {"detail": "Project not found or inaccessible."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        if not project.user_can_manage_project(request.user):
+            return Response(
+                {"detail": "You do not have permission to search for project members."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        query = request.query_params.get("q", "").strip()
+        if len(query) < 2:
+            return Response(
+                {"detail": "Search term must contain at least 2 characters."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        existing_member_ids = ProjectMembership.objects.filter(
+            project=project
+        ).values("user_id")
+        users = (
+            User.objects.filter(username__icontains=query)
+            .exclude(pk=project.owner_id)
+            .exclude(pk__in=existing_member_ids)
+            .order_by("username")
+            .values("id", "username", "email")[:10]
+        )
+        return Response({"results": list(users)})
 
 
 class IssueViewSet(viewsets.ModelViewSet):

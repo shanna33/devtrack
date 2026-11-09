@@ -20,8 +20,13 @@
             <form method="post" action="{% url 'project_add_member' project.pk %}" class="member-add-form">
                 {% csrf_token %}
                 <div>
-                    <label for="{{ member_form.user.id_for_label }}" class="form-label">{{ member_form.user.label }}</label>
+                    <label for="member-user-search" class="form-label">{{ member_form.user.label }}</label>
+                    <input type="search" id="member-user-search" class="form-control" autocomplete="off"
+                        aria-autocomplete="list" aria-controls="member-user-results"
+                        aria-describedby="member-search-status" placeholder="Search by username (2+ characters)">
                     {{ member_form.user }}
+                    <ul id="member-user-results" class="member-search-results" role="listbox" hidden></ul>
+                    <div id="member-search-status" class="member-search-status" role="status" aria-live="polite"></div>
                     {% for error in member_form.user.errors %}
                     <div class="invalid-feedback d-block">{{ error }}</div>
                     {% endfor %}
@@ -108,4 +113,103 @@
         </section>
     </div>
 </section>
+{% if can_manage_members %}
+<script>
+    (() => {
+        const searchInput = document.getElementById("member-user-search");
+        const userIdInput = document.getElementById("{{ member_form.user.id_for_label }}");
+        const resultsList = document.getElementById("member-user-results");
+        const status = document.getElementById("member-search-status");
+        const form = searchInput.closest("form");
+        let debounceTimer;
+        let activeRequest;
+
+        const clearResults = () => {
+            resultsList.replaceChildren();
+            resultsList.hidden = true;
+        };
+
+        searchInput.addEventListener("input", () => {
+            const query = searchInput.value.trim();
+            userIdInput.value = "";
+            clearResults();
+            window.clearTimeout(debounceTimer);
+            if (activeRequest) {
+                activeRequest.abort();
+            }
+            if (query.length < 2) {
+                status.textContent = "";
+                return;
+            }
+
+            status.textContent = "Searching users…";
+            debounceTimer = window.setTimeout(async () => {
+                activeRequest = new AbortController();
+                try {
+                    const url = new URL(
+                        "{% url 'api_project_members_search' project.pk %}",
+                        window.location.origin
+                    );
+                    url.searchParams.set("q", query);
+                    const response = await fetch(url, {
+                        headers: { "Accept": "application/json" },
+                        credentials: "same-origin",
+                        signal: activeRequest.signal,
+                    });
+                    if (!response.ok) {
+                        throw new Error("User search failed.");
+                    }
+                    const data = await response.json();
+                    clearResults();
+                    if (data.results.length === 0) {
+                        status.textContent = "No matching users.";
+                        return;
+                    }
+
+                    for (const user of data.results) {
+                        const item = document.createElement("li");
+                        item.setAttribute("role", "presentation");
+                        const option = document.createElement("button");
+                        option.type = "button";
+                        option.className = "member-search-option";
+                        option.setAttribute("role", "option");
+                        option.textContent = user.email
+                            ? `${user.username} · ${user.email}`
+                            : user.username;
+                        option.addEventListener("click", () => {
+                            userIdInput.value = user.id;
+                            searchInput.value = option.textContent;
+                            clearResults();
+                            status.textContent = `${user.username} selected.`;
+                        });
+                        item.append(option);
+                        resultsList.append(item);
+                    }
+                    resultsList.hidden = false;
+                    status.textContent = "";
+                } catch (error) {
+                    if (error.name !== "AbortError") {
+                        status.textContent = "Unable to search users. Please try again.";
+                    }
+                }
+            }, 200);
+        });
+
+        searchInput.addEventListener("keydown", (event) => {
+            if (event.key === "ArrowDown" && !resultsList.hidden) {
+                event.preventDefault();
+                resultsList.querySelector("button")?.focus();
+            }
+        });
+
+        form.addEventListener("submit", (event) => {
+            if (!userIdInput.value) {
+                event.preventDefault();
+                status.textContent = "Search for and select a registered user first.";
+                searchInput.focus();
+            }
+        });
+    })();
+</script>
+{% endif %}
 {% endblock %}

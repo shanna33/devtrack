@@ -94,9 +94,20 @@ class ProjectMemberManagementTests(TestCase):
     def test_manager_can_add_a_registered_user_and_form_excludes_ineligible_users(self):
         self.client.force_login(self.manager)
         page = self.client.get(reverse("project_members", args=[self.project.pk]))
-        self.assertContains(page, f"{self.candidate.username} ({self.candidate.email})")
-        self.assertNotContains(page, f"{self.owner.username} ({self.owner.email})")
-        self.assertNotContains(page, f"{self.member.username} ({self.member.email})")
+        self.assertContains(page, 'type="search"')
+        self.assertNotContains(page, f">{self.candidate.username} ({self.candidate.email})</option>")
+        self.assertNotContains(page, f">{self.owner.username} ({self.owner.email})</option>")
+        self.assertNotContains(page, f">{self.member.username} ({self.member.email})</option>")
+
+        search = self.client.get(
+            reverse("api_project_members_search", args=[self.project.pk]),
+            {"q": "roster-c"},
+        )
+        self.assertEqual(search.status_code, 200)
+        self.assertEqual(
+            [user["id"] for user in search.json()["results"]],
+            [self.candidate.pk],
+        )
 
         response = self.client.post(
             reverse("project_add_member", args=[self.project.pk]),
@@ -356,3 +367,129 @@ class ProjectMemberManagementAPITests(TestCase):
                 user=self.candidate,
             ).exists()
         )
+
+
+class ProjectMemberSearchAPITests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            username="directory-owner",
+            email="owner@example.com",
+            password="StrongPass123!",
+        )
+        self.manager = User.objects.create_user(
+            username="directory-manager",
+            email="manager@example.com",
+            password="StrongPass123!",
+        )
+        self.member = User.objects.create_user(
+            username="directory-member",
+            email="member@example.com",
+            password="StrongPass123!",
+        )
+        self.project = Project.objects.create(name="Directory project", owner=self.owner)
+        ProjectMembership.objects.create(
+            project=self.project,
+            user=self.owner,
+            role=ProjectMembership.OWNER,
+        )
+        ProjectMembership.objects.create(
+            project=self.project,
+            user=self.manager,
+            role=ProjectMembership.MANAGER,
+        )
+        ProjectMembership.objects.create(
+            project=self.project,
+            user=self.member,
+            role=ProjectMembership.MEMBER,
+        )
+        self.candidate = User.objects.create_user(
+            username="directory-match",
+            email="match@example.com",
+            password="StrongPass123!",
+        )
+        self.unrelated = User.objects.create_user(
+            username="unrelated-account",
+            email="unrelated@example.com",
+            password="StrongPass123!",
+        )
+        self.search_url = reverse(
+            "api_project_members_search",
+            args=[self.project.pk],
+        )
+        self.client = APIClient()
+
+    def test_owner_and_manager_can_search_with_minimum_user_fields(self):
+        for user in (self.owner, self.manager):
+            with self.subTest(user=user.username):
+                self.client.force_authenticate(user=user)
+                response = self.client.get(self.search_url, {"q": "directory-m"})
+
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(
+                    response.json()["results"],
+                    [{
+                        "id": self.candidate.pk,
+                        "username": self.candidate.username,
+                        "email": self.candidate.email,
+                    }],
+                )
+
+    def test_member_and_anonymous_cannot_search(self):
+        self.client.force_authenticate(user=self.member)
+        self.assertEqual(
+            self.client.get(self.search_url, {"q": "un"}).status_code,
+            403,
+        )
+
+        self.client.force_authenticate(user=None)
+        self.assertEqual(
+            self.client.get(self.search_url, {"q": "un"}).status_code,
+            403,
+        )
+
+    def test_search_is_scoped_excludes_current_members_and_owner(self):
+        self.client.force_authenticate(user=self.manager)
+
+        response = self.client.get(self.search_url, {"q": "directory"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [item["username"] for item in response.json()["results"]],
+            [self.candidate.username],
+        )
+        self.assertNotIn(
+            self.unrelated.username,
+            [item["username"] for item in response.json()["results"]],
+        )
+
+    def test_search_requires_two_characters_and_limits_results_to_ten(self):
+        self.client.force_authenticate(user=self.owner)
+
+        short_query = self.client.get(self.search_url, {"q": "d"})
+        self.assertEqual(short_query.status_code, 400)
+        self.assertIn("at least 2 characters", short_query.json()["detail"])
+
+        for index in range(12):
+            User.objects.create_user(
+                username=f"search-target-{index:02}",
+                email=f"target-{index}@example.com",
+                password="StrongPass123!",
+            )
+
+        response = self.client.get(self.search_url, {"q": "search-target"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json()["results"]), 10)
+        self.assertEqual(
+            set(response.json()["results"][0]),
+            {"id", "username", "email"},
+        )
+
+    def test_member_search_endpoint_rejects_cross_project_access(self):
+        other_project = Project.objects.create(name="Private directory", owner=self.unrelated)
+        other_search = reverse("api_project_members_search", args=[other_project.pk])
+        self.client.force_authenticate(user=self.manager)
+
+        response = self.client.get(other_search, {"q": "un"})
+
+        self.assertEqual(response.status_code, 404)

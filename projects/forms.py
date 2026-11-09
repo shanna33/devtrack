@@ -7,11 +7,6 @@ from .models import Project, ProjectMembership
 User = get_user_model()
 
 
-class ProjectMemberChoiceField(forms.ModelChoiceField):
-    def label_from_instance(self, obj):
-        return f"{obj.username} ({obj.email})" if obj.email else obj.username
-
-
 class ProjectForm(forms.ModelForm):
     class Meta:
         model = Project
@@ -23,13 +18,13 @@ class ProjectForm(forms.ModelForm):
 
 
 class ProjectMembershipForm(forms.ModelForm):
-    user = ProjectMemberChoiceField(
+    user = forms.ModelChoiceField(
         queryset=User.objects.none(),
         label="Registered user",
         error_messages={
-            "invalid_choice": "Choose a registered user who is not already a project member."
+            "invalid_choice": "Select an eligible registered user from search results."
         },
-        widget=forms.Select(attrs={"class": "form-select"}),
+        widget=forms.HiddenInput(),
     )
     role = forms.ChoiceField(
         choices=[
@@ -43,11 +38,19 @@ class ProjectMembershipForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.project = project
         existing_member_ids = ProjectMembership.objects.filter(project=project).values("user_id")
-        self.fields["user"].queryset = (
-            User.objects.exclude(pk=project.owner_id)
-            .exclude(pk__in=existing_member_ids)
-            .order_by("username")
-        )
+        queryset = User.objects.exclude(pk=project.owner_id).exclude(pk__in=existing_member_ids)
+        if self.is_bound:
+            try:
+                selected_user_id = int(self.data.get(self.add_prefix("user"), ""))
+            except (TypeError, ValueError):
+                selected_user_id = None
+            if selected_user_id:
+                queryset = queryset.filter(pk=selected_user_id)
+            else:
+                queryset = queryset.none()
+        else:
+            queryset = queryset.none()
+        self.fields["user"].queryset = queryset
 
     def clean_user(self):
         user = self.cleaned_data["user"]

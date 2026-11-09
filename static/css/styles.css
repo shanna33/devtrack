@@ -744,6 +744,49 @@ textarea.form-control {
     margin-bottom: 0.28rem;
 }
 
+.member-search-results {
+    position: relative;
+    z-index: 3;
+    max-height: 220px;
+    overflow-y: auto;
+    margin: 0.3rem 0 0;
+    padding: 0.25rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
+    list-style: none;
+}
+
+.member-search-results[hidden] {
+    display: none;
+}
+
+.member-search-option {
+    width: 100%;
+    padding: 0.48rem 0.6rem;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-text);
+    font: inherit;
+    font-size: 0.82rem;
+    text-align: left;
+}
+
+.member-search-option:hover,
+.member-search-option:focus-visible {
+    outline: 0;
+    background: #f1f3ff;
+    color: var(--color-primary-hover);
+}
+
+.member-search-status {
+    margin-top: 0.3rem;
+    color: var(--color-muted);
+    font-size: 0.76rem;
+}
+
 .member-add-form .btn {
     white-space: nowrap;
 }

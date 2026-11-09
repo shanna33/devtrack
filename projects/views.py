@@ -139,6 +139,11 @@ def add_member(request, pk):
         form.add_error("user", "This user is already a project member.")
     return render(request, "projects/project_members.html", {
         "project": project,
+        "memberships": [
+            membership
+            for membership in project.memberships.select_related("user").all()
+            if membership.user_id != project.owner_id
+        ],
         "can_manage_members": True,
         "member_form": form,
     })
