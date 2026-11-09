@@ -625,6 +625,18 @@ textarea.form-control {
     padding: 1.4rem;
 }
 
+.project-detail-page {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+}
+
+.project-detail-page .card-panel {
+    height: auto;
+    min-width: 0;
+    padding: 1.25rem;
+}
+
 .detail-panel .page-header h4 {
     font-size: 1.2rem;
 }
@@ -637,6 +649,18 @@ textarea.form-control {
 
 .project-description {
     margin: 1.15rem 0;
+}
+
+.project-detail-page .project-description {
+    margin: 0.55rem 0;
+}
+
+.project-detail-page .page-header {
+    margin-bottom: 0.75rem;
+}
+
+.project-detail-page .detail-meta {
+    padding-top: 0.65rem;
 }
 
 .issue-description {
@@ -668,25 +692,174 @@ textarea.form-control {
     max-width: 820px;
 }
 
+.project-members-page {
+    min-width: 0;
+}
+
+.project-workspace-layout {
+    min-width: 0;
+}
+
+.project-members-card {
+    height: auto;
+    padding: 1.25rem;
+}
+
+.member-project-summary {
+    padding-bottom: 0.9rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.member-project-summary h4 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.member-project-summary p {
+    margin: 0.3rem 0 0;
+    color: var(--color-muted);
+    font-size: 0.84rem;
+    white-space: pre-line;
+}
+
+.member-add-section {
+    padding: 0.9rem 0;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.member-add-section h5,
+.member-list-heading h5 {
+    margin: 0;
+}
+
+.member-add-form {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(145px, 1fr) auto;
+    align-items: end;
+    gap: 0.75rem;
+    margin-top: 0.65rem;
+}
+
+.member-add-form .form-label {
+    margin-bottom: 0.28rem;
+}
+
+.member-add-form .btn {
+    white-space: nowrap;
+}
+
+.member-add-error {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding: 0.55rem 0.75rem;
+    font-size: 0.82rem;
+}
+
+.member-list-section {
+    padding-top: 0.9rem;
+}
+
+.member-list-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.65rem;
+}
+
+.member-list-heading .section-description {
+    margin-top: 0.2rem;
+}
+
+.member-count {
+    padding: 0.22rem 0.55rem;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    color: var(--color-muted);
+    font-size: 0.74rem;
+    white-space: nowrap;
+}
+
+.member-table {
+    min-width: 640px;
+}
+
+.member-table > :not(caption) > * > * {
+    padding: 0.62rem 0.7rem;
+}
+
+.member-identity {
+    display: flex;
+    min-width: 155px;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.member-identity > span:last-child {
+    display: grid;
+    min-width: 0;
+    gap: 0.08rem;
+}
+
+.member-identity strong {
+    overflow: hidden;
+    color: var(--color-text);
+    font-size: 0.84rem;
+    font-weight: 580;
+    text-overflow: ellipsis;
+}
+
+.member-identity small {
+    overflow: hidden;
+    color: var(--color-muted);
+    font-size: 0.75rem;
+    text-overflow: ellipsis;
+}
+
+.member-avatar {
+    display: grid;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    place-items: center;
+    border: 1px solid #dfe5fb;
+    border-radius: 50%;
+    background: #f1f3ff;
+    color: #435ed6;
+    font-size: 0.76rem;
+    font-weight: 650;
+}
+
+.member-role-badge {
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-muted);
+    color: #596577;
+}
+
+.member-actions-heading {
+    text-align: right;
+}
+
 .member-actions {
-    min-width: 255px;
+    min-width: 280px;
+    text-align: right;
 }
 
 .member-actions form {
-    margin: 0 0.3rem 0.25rem 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0 0 0.2rem 0.25rem;
     vertical-align: middle;
 }
 
 .member-actions .form-select {
-    min-width: 102px;
+    width: 112px;
 }
 
-.member-form-panel {
-    height: auto;
-}
-
-.member-list-panel {
-    height: auto;
+.member-empty-state {
+    color: var(--color-muted) !important;
+    text-align: center;
 }
 
 .confirmation-panel {
@@ -834,11 +1007,6 @@ textarea.form-control {
         margin-top: 0 !important;
     }
 
-    .member-form-panel,
-    .member-list-panel {
-        height: auto;
-    }
-
     .content-panel {
         padding: 1.35rem 1.25rem 2.5rem;
     }
@@ -870,6 +1038,35 @@ textarea.form-control {
 
     .content-panel {
         padding: 1.1rem 0.8rem 2rem;
+    }
+
+    .project-members-page {
+        margin-top: -0.5rem;
+    }
+
+    .project-members-card {
+        padding: 0.75rem;
+    }
+
+    .member-project-summary {
+        padding-bottom: 0.6rem;
+    }
+
+    .member-add-section {
+        padding: 0.55rem 0;
+    }
+
+    .member-add-form {
+        gap: 0.45rem;
+        margin-top: 0.45rem;
+    }
+
+    .member-list-section {
+        padding-top: 0.6rem;
+    }
+
+    .member-list-heading {
+        margin-bottom: 0.45rem;
     }
 
     .topbar {
@@ -908,12 +1105,104 @@ textarea.form-control {
         padding: 1.05rem;
     }
 
+    .project-members-card {
+        padding: 1rem;
+    }
+
+    .project-detail-page .card-panel {
+        padding: 1rem;
+    }
+
     .detail-panel .page-header > div:last-child {
         width: auto;
     }
 
     .member-actions {
-        min-width: 245px;
+        min-width: 280px;
+    }
+
+    .member-add-form {
+        grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+        gap: 0.65rem;
+    }
+
+    .member-table {
+        display: block;
+        min-width: 0;
+        width: 100%;
+    }
+
+    .member-table thead {
+        display: none;
+    }
+
+    .member-table tbody {
+        display: grid;
+        gap: 0.5rem;
+    }
+
+    .member-table tbody tr {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        padding: 0.4rem;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+    }
+
+    .member-table tbody tr > * {
+        min-width: 0;
+        padding: 0.3rem;
+        border: 0;
+    }
+
+    .member-table tbody tr > :first-child {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    .member-table tbody tr > :nth-child(2) {
+        grid-column: 2;
+        grid-row: 1;
+    }
+
+    .member-table tbody tr > :nth-child(3) {
+        grid-column: 1;
+        grid-row: 2;
+        color: var(--color-muted);
+        font-size: 0.76rem;
+    }
+
+    .member-table tbody tr > :nth-child(3)::before {
+        content: "Joined ";
+        font-weight: 600;
+    }
+
+    .member-table tbody tr > :nth-child(4) {
+        grid-column: 1 / -1;
+        grid-row: 3;
+    }
+
+    .member-table .member-actions {
+        min-width: 0;
+        text-align: left;
+    }
+
+    .member-table .member-actions form {
+        margin: 0.2rem 0.25rem 0.2rem 0;
+    }
+
+    .member-add-error {
+        grid-column: auto;
+    }
+
+    .member-add-form .btn {
+        grid-column: 1 / -1;
+        width: 100%;
+    }
+
+    .member-list-heading {
+        align-items: flex-start;
     }
 
     .table > :not(caption) > * > * {

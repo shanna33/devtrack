@@ -1,11 +1,13 @@
 {% extends 'base.html' %}
 
 {% block title %}{{ project.name }} | DevTrack{% endblock %}
+{% block body_class %}project-workspace-layout{% endblock %}
 {% block page_title %}{{ project.name }}{% endblock %}
 {% block page_description %}<p class="page-description">Project workspace <span class="mx-1">/</span> Overview</p>{% endblock %}
 
 {% block content %}
-<div class="card-panel detail-panel mb-4">
+<div class="project-detail-page">
+<div class="card-panel detail-panel">
     <div class="page-header">
         <div>
             <h4>{{ project.name }}</h4>
@@ -73,5 +75,6 @@
         <a href="{% url 'issue_create' project.pk %}" class="btn btn-primary btn-sm">Create an issue</a>
     </div>
     {% endif %}
+</div>
 </div>
 {% endblock %}

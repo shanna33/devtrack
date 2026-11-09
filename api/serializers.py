@@ -54,6 +54,33 @@ class ProjectMembershipSerializer(serializers.ModelSerializer):
         return obj.user.username
 
 
+class ProjectMembershipCreateSerializer(serializers.Serializer):
+    user_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        required=False,
+    )
+    username = serializers.CharField(required=False, allow_blank=False)
+    user = serializers.CharField(required=False, allow_blank=False)
+    role = serializers.ChoiceField(
+        choices=[ProjectMembership.MEMBER, ProjectMembership.MANAGER],
+        default=ProjectMembership.MEMBER,
+    )
+
+    def validate(self, attrs):
+        user = attrs.get("user_id")
+        username = attrs.get("username") or attrs.get("user")
+        if user is None and username:
+            user = User.objects.filter(username=username).first()
+        if user is None:
+            raise serializers.ValidationError({"user": "Choose a valid registered user."})
+        attrs["member"] = user
+        return attrs
+
+
+class ProjectMembershipDeleteSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField(min_value=1)
+
+
 class ProjectMembershipRoleSerializer(serializers.Serializer):
     role = serializers.ChoiceField(choices=[ProjectMembership.MEMBER, ProjectMembership.MANAGER])
 

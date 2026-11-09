@@ -1,5 +1,3 @@
-from django.contrib.auth import get_user_model
-from django.contrib.auth.models import User
 from django.db.models import Q
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.exceptions import PermissionDenied
@@ -20,14 +18,13 @@ from .permissions import (
 from .serializers import (
     CommentSerializer,
     IssueSerializer,
+    ProjectMembershipCreateSerializer,
+    ProjectMembershipDeleteSerializer,
     ProjectMembershipRoleSerializer,
     ProjectMembershipSerializer,
     ProjectSerializer,
     RegisterSerializer,
 )
-
-UserModel = get_user_model()
-
 
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
@@ -70,6 +67,7 @@ class ProjectMembershipAPIView(APIView):
             return None
         return project
 
+    @extend_schema(responses=ProjectMembershipSerializer(many=True))
     def get(self, request, project_id):
         project = self.get_project(project_id)
         if project is None:
@@ -78,6 +76,10 @@ class ProjectMembershipAPIView(APIView):
         serializer = ProjectMembershipSerializer(memberships, many=True)
         return Response(serializer.data)
 
+    @extend_schema(
+        request=ProjectMembershipCreateSerializer,
+        responses={status.HTTP_201_CREATED: ProjectMembershipSerializer},
+    )
     def post(self, request, project_id):
         project = self.get_project(project_id)
         if project is None:
@@ -85,36 +87,38 @@ class ProjectMembershipAPIView(APIView):
         if not project.user_can_manage_project(request.user):
             return Response({"detail": "You do not have permission to manage project members."}, status=status.HTTP_403_FORBIDDEN)
 
-        username = request.data.get("username") or request.data.get("user")
-        user_id = request.data.get("user_id")
-        user = None
-        if user_id:
-            user = User.objects.filter(pk=user_id).first()
-        elif username:
-            user = User.objects.filter(username=username).first()
-        if not user:
-            return Response({"detail": "User not found."}, status=status.HTTP_400_BAD_REQUEST)
+        input_serializer = ProjectMembershipCreateSerializer(data=request.data)
+        if not input_serializer.is_valid():
+            return Response(input_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        user = input_serializer.validated_data["member"]
         if user == project.owner:
             return Response({"detail": "Project owner is already included."}, status=status.HTTP_400_BAD_REQUEST)
-        if ProjectMembership.objects.filter(project=project, user=user).exists():
+        role = input_serializer.validated_data["role"]
+        membership, created = ProjectMembership.objects.get_or_create(
+            project=project,
+            user=user,
+            defaults={"role": role},
+        )
+        if not created:
             return Response({"detail": "This user is already a member."}, status=status.HTTP_400_BAD_REQUEST)
-
-        role = request.data.get("role", ProjectMembership.MEMBER)
-        if role not in (ProjectMembership.MEMBER, ProjectMembership.MANAGER):
-            return Response({"detail": "A member can only be assigned the member or manager role."}, status=status.HTTP_400_BAD_REQUEST)
-        membership = ProjectMembership.objects.create(project=project, user=user, role=role)
         serializer = ProjectMembershipSerializer(membership)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    @extend_schema(
+        operation_id="project_members_remove_legacy",
+        request=ProjectMembershipDeleteSerializer,
+        responses={status.HTTP_204_NO_CONTENT: None},
+    )
     def delete(self, request, project_id):
         project = self.get_project(project_id)
         if project is None:
             return Response({"detail": "Project not found or inaccessible."}, status=status.HTTP_404_NOT_FOUND)
         if not project.user_can_manage_project(request.user):
             return Response({"detail": "You do not have permission to manage project members."}, status=status.HTTP_403_FORBIDDEN)
-        user_id = request.data.get("user_id")
-        if not user_id:
-            return Response({"detail": "user_id is required."}, status=status.HTTP_400_BAD_REQUEST)
+        input_serializer = ProjectMembershipDeleteSerializer(data=request.data)
+        if not input_serializer.is_valid():
+            return Response(input_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        user_id = input_serializer.validated_data["user_id"]
         membership = ProjectMembership.objects.filter(project=project, user_id=user_id).first()
         if not membership:
             return Response({"detail": "Membership not found."}, status=status.HTTP_404_NOT_FOUND)
@@ -189,11 +193,16 @@ class IssueCommentsAPIView(generics.ListCreateAPIView):
 
 
 class ProjectMembershipDestroyAPIView(generics.DestroyAPIView):
+    serializer_class = ProjectMembershipSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         return ProjectMembership.objects.all()
 
+    @extend_schema(
+        operation_id="project_member_remove",
+        responses={status.HTTP_204_NO_CONTENT: None},
+    )
     def delete(self, request, *args, **kwargs):
         project = Project.objects.filter(pk=self.kwargs["project_id"]).first()
         if project is None or not project.user_can_access(request.user):
